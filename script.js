@@ -15,7 +15,6 @@ function openChat(userName) {
     document.getElementById('chatUserName').textContent = userName;
     window.currentChat = userName.replace(/\s+/g, '_').toLowerCase();
     
-    // Load chat history
     if (window.loadMessages) {
         window.loadMessages(window.currentChat);
     }
@@ -30,9 +29,8 @@ document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', f
 // WebRTC
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 let peerConnection = null;
-let dataChannel = null;
+let localStream = null;
 let currentRoomCode = null;
-let roomRef = null;
 
 function toggleFabMenu() { document.getElementById('roomModal').classList.add('active'); }
 function closeRoomModal() { document.getElementById('roomModal').classList.remove('active'); document.getElementById('createView').style.display = 'none'; document.getElementById('joinView').style.display = 'none'; document.querySelector('.modal-options').style.display = 'grid'; }
@@ -49,16 +47,15 @@ async function createRoom() {
     document.getElementById('roomCodeDisplay').textContent = currentRoomCode;
     document.getElementById('waitingText').textContent = 'Share code to connect...';
     
-    // Emit room creation to server
-    socket.emit('createRoom', currentRoomCode);
+    window.socket.emit('createRoom', currentRoomCode);
     
-    // Listen for someone joining
-    socket.on('userJoinedRoom', (data) => {
+    window.socket.on('userJoinedRoom', (data) => {
         if (data.roomCode === currentRoomCode) {
             document.getElementById('waitingText').textContent = 'Connected! 🎉';
             setTimeout(() => {
                 closeRoomModal();
                 openChat(data.username);
+                initializePeerConnection();
             }, 1000);
         }
     });
@@ -72,21 +69,57 @@ async function joinRoom() {
     }
     
     currentRoomCode = code;
-    socket.emit('joinRoom', { roomCode: code, username: currentUser });
+    window.socket.emit('joinRoom', { roomCode: code, username: window.currentUser });
     
-    socket.on('roomJoined', () => {
+    window.socket.on('roomJoined', () => {
         closeRoomModal();
         openChat('Room: ' + code);
+        initializePeerConnection();
     });
     
-    socket.on('roomNotFound', () => {
+    window.socket.on('roomNotFound', () => {
         alert('Room not found. Please check the code.');
     });
 }
 
-function setupDataChannel() {
-    dataChannel.onopen = () => console.log('Connected!');
-    dataChannel.onmessage = (event) => receiveMessage(event.data);
+function initializePeerConnection() {
+    peerConnection = new RTCPeerConnection(config);
+    
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            window.socket.emit('ice-candidate', {
+                candidate: event.candidate,
+                to: currentRoomCode
+            });
+        }
+    };
+    
+    peerConnection.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        if (remoteStream.getVideoTracks().length > 0) {
+            showVideoUI(localStream, remoteStream);
+        } else {
+            showAudioUI(remoteStream);
+        }
+    };
+    
+    window.socket.on('call-made', async (data) => {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        window.socket.emit('make-answer', {
+            answer: answer,
+            to: data.socket
+        });
+    });
+    
+    window.socket.on('answer-made', async (data) => {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    });
+    
+    window.socket.on('ice-candidate', async (data) => {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
 }
 
 function sendMessage() {
@@ -102,7 +135,6 @@ function sendMessage() {
         messagesArea.scrollTop = messagesArea.scrollHeight;
         input.value = '';
         
-        // Send via Socket.io if connected
         if (window.socket && window.currentChat) {
             window.socket.emit('sendMessage', {
                 chatId: window.currentChat,
@@ -113,32 +145,44 @@ function sendMessage() {
     }
 }
 
-function receiveMessage(data) {
-    const messagesArea = document.querySelector('.messages-area');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message received';
-    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    messageDiv.innerHTML = `<div class="message-content"><p>${data}</p><span class="message-time">${time}</span></div>`;
-    messagesArea.appendChild(messageDiv);
-    messagesArea.scrollTop = messagesArea.scrollHeight;
-}
-
 async function startVideoCall() {
-    if (!peerConnection) { alert('Please connect first!'); return; }
+    if (!peerConnection) { alert('Please create or join a room first!'); return; }
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-        peerConnection.ontrack = (event) => showVideoUI(stream, event.streams[0]);
-    } catch (err) { alert('Camera access denied'); }
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        
+        window.socket.emit('call-user', {
+            offer: offer,
+            to: currentRoomCode
+        });
+        
+        showVideoUI(localStream, null);
+    } catch (err) { 
+        alert('Camera access denied'); 
+    }
 }
 
 async function startAudioCall() {
-    if (!peerConnection) { alert('Please connect first!'); return; }
+    if (!peerConnection) { alert('Please create or join a room first!'); return; }
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-        peerConnection.ontrack = (event) => showAudioUI(event.streams[0]);
-    } catch (err) { alert('Microphone access denied'); }
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        
+        window.socket.emit('call-user', {
+            offer: offer,
+            to: currentRoomCode
+        });
+        
+        showAudioUI(null);
+    } catch (err) { 
+        alert('Microphone access denied'); 
+    }
 }
 
 function showVideoUI(local, remote) {
@@ -151,8 +195,8 @@ function showVideoUI(local, remote) {
         videoContainer.innerHTML = `<video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay muted playsinline></video><div class="call-controls"><button class="call-btn end-call" onclick="endCall()">End</button></div>`;
         messagesArea.appendChild(videoContainer);
     }
-    document.getElementById('localVideo').srcObject = local;
-    document.getElementById('remoteVideo').srcObject = remote;
+    if (local) document.getElementById('localVideo').srcObject = local;
+    if (remote) document.getElementById('remoteVideo').srcObject = remote;
 }
 
 function showAudioUI(stream) {
@@ -165,11 +209,18 @@ function showAudioUI(stream) {
         audioContainer.innerHTML = `<div class="audio-call-info"><div class="audio-avatar">📞</div><p>Voice Call</p><button class="call-btn end-call" onclick="endCall()">End</button></div><audio id="remoteAudio" autoplay></audio>`;
         messagesArea.appendChild(audioContainer);
     }
-    document.getElementById('remoteAudio').srcObject = stream;
+    if (stream) document.getElementById('remoteAudio').srcObject = stream;
 }
 
 function endCall() {
-    if (peerConnection) peerConnection.getSenders().forEach(sender => { if (sender.track) sender.track.stop(); });
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
     document.getElementById('videoCallContainer')?.remove();
     document.getElementById('audioCallContainer')?.remove();
 }

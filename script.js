@@ -18,6 +18,18 @@ function openChat(userName) {
     if (window.loadMessages) {
         window.loadMessages(window.currentChat);
     }
+    
+    // Attach call button handlers
+    attachCallHandlers();
+}
+
+function attachCallHandlers() {
+    const chatActions = document.querySelector('.chat-actions');
+    if (chatActions) {
+        const buttons = chatActions.querySelectorAll('.icon-btn');
+        if (buttons[1]) buttons[1].onclick = startVideoCall;
+        if (buttons[2]) buttons[2].onclick = startAudioCall;
+    }
 }
 
 document.getElementById('messageInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
@@ -146,7 +158,14 @@ function sendMessage() {
 }
 
 async function startVideoCall() {
-    if (!peerConnection) { alert('Please create or join a room first!'); return; }
+    if (!currentRoomCode) {
+        alert('Please create or join a room first using the + button!');
+        return;
+    }
+    if (!peerConnection) {
+        alert('Connection not ready. Please wait...');
+        return;
+    }
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -161,12 +180,19 @@ async function startVideoCall() {
         
         showVideoUI(localStream, null);
     } catch (err) { 
-        alert('Camera access denied'); 
+        alert('Camera/microphone access denied: ' + err.message); 
     }
 }
 
 async function startAudioCall() {
-    if (!peerConnection) { alert('Please create or join a room first!'); return; }
+    if (!currentRoomCode) {
+        alert('Please create or join a room first using the + button!');
+        return;
+    }
+    if (!peerConnection) {
+        alert('Connection not ready. Please wait...');
+        return;
+    }
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -181,7 +207,7 @@ async function startAudioCall() {
         
         showAudioUI(null);
     } catch (err) { 
-        alert('Microphone access denied'); 
+        alert('Microphone access denied: ' + err.message); 
     }
 }
 
@@ -218,8 +244,9 @@ function endCall() {
         localStream = null;
     }
     if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
+        peerConnection.getSenders().forEach(sender => {
+            if (sender.track) sender.track.stop();
+        });
     }
     document.getElementById('videoCallContainer')?.remove();
     document.getElementById('audioCallContainer')?.remove();

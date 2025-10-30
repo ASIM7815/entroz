@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meez - Connect Instantly</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <!-- Header -->
+            <div class="sidebar-header">
+                <div class="profile-avatar">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #0047AB, #0066CC);">YO</div>
+                    <span class="online-indicator"></span>
+                </div>
+                <div class="header-icons">
+                    <button class="icon-btn" title="New chat">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <defs>
+                                <linearGradient id="newChatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0047AB;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle fill="url(#newChatGrad)" cx="12" cy="12" r="10" opacity="0.2"/>
+                            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" title="Menu">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <defs>
+                                <linearGradient id="menuGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0047AB;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle fill="url(#menuGrad)" cx="12" cy="5" r="2.5"/>
+                            <circle fill="url(#menuGrad)" cx="12" cy="12" r="2.5"/>
+                            <circle fill="url(#menuGrad)" cx="12" cy="19" r="2.5"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-container">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.009 13.805h-.636l-.22-.219a5.184 5.184 0 0 0 1.256-3.386 5.207 5.207 0 1 0-5.207 5.208 5.183 5.183 0 0 0 3.385-1.255l.221.22v.635l4.004 3.999 1.194-1.195-3.997-4.007zm-4.808 0a3.605 3.605 0 1 1 0-7.21 3.605 3.605 0 0 1 0 7.21z"/></svg>
+                    <input type="text" placeholder="Search or start new chat">
+                </div>
+                <button class="filter-btn" title="Filter"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg></button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active">
+                    <div class="tab-icon-3d">
+                        <svg viewBox="0 0 24 24" width="22" height="22">
+                            <defs>
+                                <linearGradient id="chatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0047AB;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path fill="url(#chatGrad)" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                        </svg>
+                    </div>
+                    Chats
+                    <span class="badge">5</span>
+                </button>
+                <button class="tab" onclick="showStatus()">
+                    <div class="tab-icon-3d">
+                        <svg viewBox="0 0 24 24" width="22" height="22">
+                            <defs>
+                                <linearGradient id="statusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0047AB;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle fill="url(#statusGrad)" cx="12" cy="12" r="10"/>
+                            <circle fill="rgba(255,255,255,0.3)" cx="12" cy="12" r="6"/>
+                        </svg>
+                    </div>
+                    Status
+                </button>
+                <button class="tab">
+                    <div class="tab-icon-3d">
+                        <svg viewBox="0 0 24 24" width="22" height="22">
+                            <defs>
+                                <linearGradient id="callGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0047AB;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path fill="url(#callGrad)" d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
+                        </svg>
+                    </div>
+                    Calls
+                </button>
+            </div>
+
+            <!-- Chat List -->
+            <div class="chat-list">
+                <div class="chat-item active" onclick="openChat('Alice Johnson')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #0047AB, #0066CC);">AJ</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Alice Johnson</h3>
+                            <span class="time">6h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>Hey! How are you doing?</p>
+                            <span class="unread-badge">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('Bob Smith')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #003d82, #0047AB);">BS</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Bob Smith</h3>
+                            <span class="time">7h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>Can we meet tomorrow?</p>
+                            <span class="unread-badge">4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('Charlie Brown')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #0047AB, #0066CC);">CB</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Charlie Brown</h3>
+                            <span class="time">8h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>Thanks for your help!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('Diana Prince')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #003d82, #0047AB);">DP</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Diana Prince</h3>
+                            <span class="time">1h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>See you soon! 👋</p>
+                            <span class="unread-badge">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('Eva Green')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #0047AB, #0066CC);">EG</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Eva Green</h3>
+                            <span class="time">6h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>That sounds great!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('Frank Castle')">
+                    <div class="avatar-circle" style="background: linear-gradient(135deg, #003d82, #0047AB);">FC</div>
+                    <div class="chat-info">
+                        <div class="chat-header">
+                            <h3>Frank Castle</h3>
+                            <span class="time">11h</span>
+                        </div>
+                        <div class="chat-preview">
+                            <p>I'll call you later</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resizer -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- Main Chat Area -->
+        <div class="main-chat" id="mainChat">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <div class="welcome-icon">
+                        <svg viewBox="0 0 200 200" width="200" height="200">
+                            <circle cx="100" cy="80" r="30" fill="#0047AB" opacity="0.5"/>
+                            <circle cx="130" cy="100" r="35" fill="#0066CC" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <h1 class="logo-breathe"><span style="color: #0047AB;">Meez</span> <span style="color: #5a8fd6;">for Web</span></h1>
+                    <p class="subtitle">Connect & Feel</p>
+                    
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0047AB"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                            </div>
+                            <h3>Real-time Chat</h3>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0066CC"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                            </div>
+                            <h3>Video Callz</h3>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0047AB"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                            </div>
+                            <h3>Group Chat</h3>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0066CC"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                            </div>
+                            <h3>Instant Status</h3>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0047AB"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                            </div>
+                            <h3>Encryptz</h3>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon-glow">
+                                <svg viewBox="0 0 24 24" width="50" height="50" fill="#0066CC"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </div>
+                            <h3>React & Share</h3>
+                        </div>
+                    </div>
+                    
+                    <p class="welcome-footer">Select a chat to begin your journey</p>
+                </div>
+            </div>
+
+            <!-- Chat Window -->
+            <div class="chat-window" id="chatWindow" style="display: none;">
+                <!-- Chat Header -->
+                <div class="chat-window-header">
+                    <div class="chat-user-info">
+                        <div class="avatar-circle" style="background: linear-gradient(135deg, #0047AB, #0066CC);">AJ</div>
+                        <div>
+                            <h3 id="chatUserName">Alice Johnson</h3>
+                            <span class="status">away</span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+                        <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
+                        <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></button>
+                        <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/></svg></button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="messages-area">
+                    <div class="date-divider">
+                        <span>Today</span>
+                    </div>
+                    
+                    <div class="message received">
+                        <div class="message-content">
+                            <p>Hey! How are you?</p>
+                            <span class="message-time">12:00 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="message sent">
+                        <div class="message-content">
+                            <p>I'm doing great, thanks! How about you?</p>
+                            <span class="message-time">12:05 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="message received">
+                        <div class="message-content">
+                            <p>Pretty good! Want to grab coffee later?</p>
+                            <span class="message-time">14:10 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="message sent">
+                        <div class="message-content">
+                            <p>Sure! What time works for you?</p>
+                            <span class="message-time">15:15 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="message received">
+                        <div class="message-content">
+                            <p>How about 3 PM?</p>
+                            <span class="message-time">16:20 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="message sent">
+                        <div class="message-content">
+                            <p>Perfect! See you then! 😊</p>
+                            <span class="message-time">17:25 PM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="message-input-container">
+                    <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M9.153 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zm-3.204 1.362c-.026-.307-.131 5.218 6.063 5.551 6.066-.25 6.066-5.551 6.066-5.551-6.078 1.416-12.129 0-12.129 0zm11.363 1.108s-.669 1.959-5.051 1.959c-3.505 0-5.388-1.164-5.607-1.959 0 0 5.912 1.055 10.658 0zM11.804 1.011C5.609 1.011.978 6.033.978 12.228s4.826 10.761 11.021 10.761S23.02 18.423 23.02 12.228c.001-6.195-5.021-11.217-11.216-11.217zM12 21.354c-5.273 0-9.381-3.886-9.381-9.159s3.942-9.548 9.215-9.548 9.548 4.275 9.548 9.548c-.001 5.272-4.109 9.159-9.382 9.159zm3.108-9.751c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962z"/></svg></button>
+                    <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M1.816 15.556v.002c0 1.502.584 2.912 1.646 3.972s2.472 1.647 3.974 1.647a5.58 5.58 0 0 0 3.972-1.645l9.547-9.548c.769-.768 1.147-1.767 1.058-2.817-.079-.968-.548-1.927-1.319-2.698-1.594-1.592-4.068-1.711-5.517-.262l-7.916 7.915c-.881.881-.792 2.25.214 3.261.959.958 2.423 1.053 3.263.215l5.511-5.512c.28-.28.267-.722.053-.936l-.244-.244c-.191-.191-.567-.349-.957.04l-5.506 5.506c-.18.18-.635.127-.976-.214-.098-.097-.576-.613-.213-.973l7.915-7.917c.818-.817 2.267-.699 3.23.262.5.501.802 1.1.849 1.685.051.573-.156 1.111-.589 1.543l-9.547 9.549a3.97 3.97 0 0 1-2.829 1.171 3.975 3.975 0 0 1-2.83-1.173 3.973 3.973 0 0 1-1.172-2.828c0-1.071.415-2.076 1.172-2.83l7.209-7.211c.157-.157.264-.579.028-.814L11.5 4.36a.572.572 0 0 0-.834.018l-7.205 7.207a5.577 5.577 0 0 0-1.645 3.971z"/></svg></button>
+                    <div class="input-wrapper">
+                        <input type="text" placeholder="Type a message" id="messageInput">
+                    </div>
+                    <button class="icon-btn send-btn" onclick="sendMessage()"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"/></svg></button>
+                    <button class="icon-btn"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2z"/></svg></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Panel -->
+        <div class="profile-panel" id="profilePanel">
+            <div class="profile-header">
+                <button class="icon-btn" onclick="closeProfile()"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z"/></svg></button>
+                <h2>Profile</h2>
+            </div>
+            <div class="profile-content">
+                <div class="profile-photo-section">
+                    <div class="profile-photo">
+                        <div class="avatar-circle large" style="background: linear-gradient(135deg, #0047AB, #0066CC);">AJ</div>
+                    </div>
+                </div>
+                <div class="profile-info-section">
+                    <div class="info-row">
+                        <label>Your name</label>
+                        <p>Alice Johnson</p>
+                    </div>
+                    <div class="info-row">
+                        <label>About</label>
+                        <p>Hey there! I am using WhatsApp</p>
+                    </div>
+                    <div class="info-row">
+                        <label>Phone</label>
+                        <p>+1 234 567 8900</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" id="fabBtn" onclick="toggleFabMenu()">
+        <svg viewBox="0 0 24 24" width="28" height="28">
+            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+    </button>
+
+    <!-- Room Code Modal -->
+    <div class="modal-overlay" id="roomModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeRoomModal()">&times;</button>
+            <h2>Connect Instantly</h2>
+            <p class="modal-subtitle">No login required • Peer-to-peer encrypted</p>
+            
+            <div class="modal-options">
+                <button class="modal-btn" onclick="createRoom()">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="#0047AB">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    <h3>Create Room</h3>
+                    <p>Generate a code to share</p>
+                </button>
+                
+                <button class="modal-btn" onclick="showJoinRoom()">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="#0066CC">
+                        <path d="M10 17l5-5-5-5v10z"/>
+                    </svg>
+                    <h3>Join Room</h3>
+                    <p>Enter a room code</p>
+                </button>
+            </div>
+
+            <!-- Create Room View -->
+            <div class="room-view" id="createView" style="display:none;">
+                <div class="room-code-display">
+                    <label>Your Room Code</label>
+                    <div class="code-box" id="roomCodeDisplay">------</div>
+                    <p class="code-hint">Share this code with others to connect</p>
+                </div>
+                <div class="share-options">
+                    <button class="share-btn" onclick="copyRoomCode()">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                        Copy Code
+                    </button>
+                    <button class="share-btn" onclick="shareLink()">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                        </svg>
+                        Share Link
+                    </button>
+                </div>
+                <p class="waiting-text" id="waitingText">Waiting for someone to join...</p>
+            </div>
+
+            <!-- Join Room View -->
+            <div class="room-view" id="joinView" style="display:none;">
+                <label>Enter Room Code</label>
+                <input type="text" class="code-input" id="joinCodeInput" placeholder="ABC123" maxlength="6">
+                <button class="primary-btn" onclick="joinRoom()">Join Room</button>
+                <button class="secondary-btn" onclick="backToOptions()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

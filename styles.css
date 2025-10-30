@@ -1313,3 +1313,77 @@ body::before {
     padding: 12px 30px;
     border-radius: 12px;
 }
+
+/* Video Call Styles */
+.video-call-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+#remoteVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#localVideo {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    height: 100px;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    object-fit: cover;
+    z-index: 10;
+}
+
+.call-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+}
+
+.call-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.end-call {
+    background: #ff4444;
+    color: white;
+}
+
+.end-call:hover {
+    background: #cc0000;
+}
+
+.audio-call-container {
+    padding: 40px;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.audio-avatar {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.audio-call-info p {
+    color: white;
+    font-size: 24px;
+    margin: 20px 0;
+}

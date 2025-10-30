@@ -57,6 +57,28 @@ io.on('connection', (socket) => {
     }
   });
 
+  // WebRTC signaling for video/audio calls
+  socket.on('call-user', (data) => {
+    io.to(data.to).emit('call-made', {
+      offer: data.offer,
+      socket: socket.id
+    });
+  });
+
+  socket.on('make-answer', (data) => {
+    io.to(data.to).emit('answer-made', {
+      answer: data.answer,
+      socket: socket.id
+    });
+  });
+
+  socket.on('ice-candidate', (data) => {
+    io.to(data.to).emit('ice-candidate', {
+      candidate: data.candidate,
+      socket: socket.id
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     if (socket.roomCode && rooms[socket.roomCode]) {

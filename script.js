@@ -18,8 +18,6 @@ function openChat(userName) {
     if (window.loadMessages) {
         window.loadMessages(window.currentChat);
     }
-    
-    // Attach call button handlers
     attachCallHandlers();
 }
 
